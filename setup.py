@@ -9,15 +9,15 @@ import typing
 
 from loguru import logger
 
-aliases = {"gs": "git status", "gl": "git log --oneline"}  # not existing
+aliases = {
+    "gs": "git status",
+    "gl": "git log --oneline",
+}  # These don't have any actual useful use
 
-GIT_PATH = r'"c:\Program Files\Git\bin\git.exe"'
 GIT_TEMPLATE_URL = "https://github.com/Nipa-Code/python-project-template.git"
 
 """
-NOTE: Add logoru, isort, black, flake8 + (config), requests
-NOTE: python-decouple (.env),  to poetry to be installed in every build.
-NOTE: Missing to Configure pre-commit hooks as well.
+NOTE: Missing to Configure pre-commit.
 """
 
 
@@ -55,7 +55,7 @@ def read_user_args(args: str) -> argparse.Namespace:
     return parser.parse_args(args)
 
 
-def add_alias(name: str = None, command: str = None):
+def add_alias(name: str = "setup-project", command: str = None):
     """
     Add new alias to windows powershell to execute commands with simple shortcuts.
     :param name: The name of new alias.
@@ -70,6 +70,7 @@ def add_alias(name: str = None, command: str = None):
 def del_even_readonly(action, name, exc):
     """
     Edit file permissions and remove that file if it's read-only.
+    :param name: The name of the file to be removed.
     """
     os.chmod(name, stat.S_IWRITE)
     os.remove(name)
@@ -81,7 +82,7 @@ def create_template(
     url: typing.Optional[str] = GIT_TEMPLATE_URL,
 ):
     """
-    Function to create project templates automatically. Second param kind of useless.
+    Function to create project templates automatically. Second param kind of useless for now.
     -> create folders
     -> clone project template from github
     -> initialize git
@@ -95,36 +96,48 @@ def create_template(
     if not os.listdir():  # check if path is empty. NOTE: add "not"
         logger.info(f"creating project with name '{name}'")
         subprocess.run(f"mkdir {name}", shell=True, capture_output=True)
-        subprocess.run(f"poetry init", shell=True, capture_output=True, cwd=name)
+        logger.info("created project folder")
         # change working directory to the one created
         subprocess.run(
-            r'"c:\Program Files\Git\bin\git.exe" init',  # run init with the path of git
+            "git init",  # run init with the path of git
             shell=True,
             capture_output=True,
         )
         logger.info("initialized git")
         subprocess.run(
-            r'"c:\Program Files\Git\bin\git.exe" checkout -b main',
+            "git -b main",
             shell=True,
             capture_output=True,
         )
         logger.info("switched branch to 'main'")
-        subprocess.run(f"{GIT_PATH} clone {url}", shell=True, capture_output=True)
+        subprocess.run(f"git clone {url}", shell=True, capture_output=True)
         logger.info("cloned project template files")
-        files = os.listdir(f"./python-project-template")
+        files = os.listdir("./python-project-template")
         files.__delitem__(files.index(".git"))  # delete .git from the files to move
         for file in files:
-            shutil.move(f"./python-project-template/{file}", f".")
+            shutil.move(f"./python-project-template/{file}", ".")
         # Delete the folder "python-project-template"
         if os.path.exists("./python-project-template"):
             shutil.rmtree("./python-project-template", onerror=del_even_readonly)
-        # shutil.rmtree("./python-project-template")
-        logger.info("Successfully created project files github and moved them")
+        logger.info("Successfully created project files github and moved them.")
         logger.info("Running 'poetry install', this may take a while...")
         subprocess.run("poetry install", shell=True, capture_output=True, timeout=180.0)
         logger.info("installed poetry environment packages")
+        subprocess.run(
+            "git add .",
+            shell=True,
+            capture_output=True,
+        )
+        logger.info("added all files to git")
+        subprocess.run(
+            "git commit -m 'initial commit'",
+            shell=True,
+            capture_output=True,
+        )
+        logger.info("Succesfully ran git commit, files are now saved to git")
+        logger.info("Finished setup, ready to go!")
     else:
-        logger.warning("Not an empty directory, aborting")
+        logger.warning("Not an empty directory, aborting!")
 
 
 if __name__ == "__main__":
